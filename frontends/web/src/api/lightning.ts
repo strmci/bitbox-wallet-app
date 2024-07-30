@@ -30,6 +30,7 @@ export type TLightningAccountConfig = {
   rootFingerprint: string;
   code: AccountCode;
   num: number;
+  keystoreName: string;
 };
 
 export type TLightningConfig = {

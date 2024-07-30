@@ -567,35 +567,37 @@ class Chart extends Component<Props, State> {
           </div>
           {!isMobile && <Filters {...chartFiltersProps} />}
         </header>
-        <div className={styles.chartCanvas} style={{ minHeight: chartHeight }}>
-          {chartDataMissing ? (
-            <div className={styles.chartUpdatingMessage} style={{ height: chartHeight }}>
-              {t('chart.dataMissing')}
-            </div>
-          ) : hasData ? !chartIsUpToDate && (
-            <div className={styles.chartUpdatingMessage}>
-              {t('chart.dataOldTimestamp', { time: new Date(lastTimestamp).toLocaleString(this.props.i18n.language), })}
-            </div>
-          ) : noDataPlaceholder}
-          <div ref={this.ref} className={styles.invisible}></div>
-          <span
-            ref={this.refToolTip}
-            className={styles.tooltip}
-            style={{ left: toolTipLeft, top: toolTipTop }}
-            hidden={!toolTipVisible || isMobile}>
-            {toolTipValue !== undefined ? (
-              <span>
-                <h2 className={styles.toolTipValue}>
-                  <Amount amount={toolTipValue} unit={chartFiat}/>
-                  <span className={styles.toolTipUnit}>{chartFiat}</span>
-                </h2>
-                <span className={styles.toolTipTime}>
-                  {this.renderDate(toolTipTime * 1000)}
+        {(chartDataMissing || hasData || noDataPlaceholder) ? (
+          <div className={styles.chartCanvas} style={{ minHeight: chartHeight }}>
+            {chartDataMissing ? (
+              <div className={styles.chartUpdatingMessage} style={{ height: chartHeight }}>
+                {t('chart.dataMissing')}
+              </div>
+            ) : hasData ? !chartIsUpToDate && (
+              <div className={styles.chartUpdatingMessage}>
+                {t('chart.dataOldTimestamp', { time: new Date(lastTimestamp).toLocaleString(this.props.i18n.language), })}
+              </div>
+            ) : noDataPlaceholder}
+            <div ref={this.ref} className={styles.invisible}></div>
+            <span
+              ref={this.refToolTip}
+              className={styles.tooltip}
+              style={{ left: toolTipLeft, top: toolTipTop }}
+              hidden={!toolTipVisible || isMobile}>
+              {toolTipValue !== undefined ? (
+                <span>
+                  <h2 className={styles.toolTipValue}>
+                    <Amount amount={toolTipValue} unit={chartFiat}/>
+                    <span className={styles.toolTipUnit}>{chartFiat}</span>
+                  </h2>
+                  <span className={styles.toolTipTime}>
+                    {this.renderDate(toolTipTime * 1000)}
+                  </span>
                 </span>
-              </span>
-            ) : null}
-          </span>
-        </div>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
         {isMobile && <Filters {...chartFiltersProps} />}
       </section>
     );

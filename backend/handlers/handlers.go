@@ -807,6 +807,21 @@ func (handlers *Handlers) getCoinsTotalBalance(_ *http.Request) (interface{}, er
 		}
 	}
 
+	if handlers.backend.Config().LightningConfig().LightningEnabled() {
+		lightningBalance, err := handlers.backend.Lightning().Balance()
+		if err != nil {
+			return nil, err
+		}
+		availableBalance := lightningBalance.Available().BigInt()
+
+		if bitcoinBalance, exists := totalCoinsBalances[coin.CodeBTC]; exists {
+			bitcoinBalance.Add(bitcoinBalance, availableBalance)
+		} else {
+			totalCoinsBalances[coin.CodeBTC] = availableBalance
+			sortedCoins = append([]coin.Code{coin.CodeBTC}, sortedCoins...)
+		}
+	}
+
 	for _, coinCode := range sortedCoins {
 		currentCoin, err := handlers.backend.Coin(coinCode)
 		if err != nil {
@@ -1533,6 +1548,7 @@ type lightningAccountConfigWithoutMnemonic struct {
 	RootFingerprint jsonp.HexBytes     `json:"rootFingerprint"`
 	Code            accountsTypes.Code `json:"code"`
 	Number          uint16             `json:"num"`
+	KeystoreName    string             `json:"keystoreName"`
 }
 
 type lightningConfigWithoutMnemonic struct {
@@ -1543,10 +1559,16 @@ func (handlers *Handlers) getLightningConfigHandler(_ *http.Request) interface{}
 	lightningAccounts := handlers.backend.Config().LightningConfig().Accounts
 	accounts := make([]*lightningAccountConfigWithoutMnemonic, len(lightningAccounts))
 	for i, account := range lightningAccounts {
+		keystoreName := ""
+		lightningKeystore, err := handlers.backend.Config().AccountsConfig().LookupKeystore(account.RootFingerprint)
+		if err == nil {
+			keystoreName = lightningKeystore.Name
+		}
 		accounts[i] = &lightningAccountConfigWithoutMnemonic{
 			RootFingerprint: account.RootFingerprint,
 			Code:            account.Code,
 			Number:          account.Number,
+			KeystoreName:    keystoreName,
 		}
 	}
 	return lightningConfigWithoutMnemonic{
