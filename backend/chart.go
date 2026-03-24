@@ -95,6 +95,21 @@ func (backend *Backend) addChartData(
 	}
 }
 
+func trimLeadingZeroes(result []ChartEntry, keepAllZeroes bool) []ChartEntry {
+	for i, e := range result {
+		if e.Value > 0 {
+			if i == 0 {
+				return result
+			}
+			return result[i-1:]
+		}
+	}
+	if keepAllZeroes {
+		return result
+	}
+	return []ChartEntry{}
+}
+
 // ChartData assembles chart data for all active accounts.
 func (backend *Backend) ChartData() (*Chart, error) {
 	// If true, we are missing headers or historical conversion rates necessary to compute the chart
@@ -233,6 +248,7 @@ func (backend *Backend) ChartData() (*Chart, error) {
 			i++
 		}
 		sort.Slice(result, func(i, j int) bool { return result[i].Time < result[j].Time })
+		hadHistoricalPoints := len(result) > 0
 
 		// Manually add the last point with the current total, to make the last point match.
 		// The last point might not match the account total otherwise because:
@@ -247,17 +263,10 @@ func (backend *Backend) ChartData() (*Chart, error) {
 				FormattedValue: coin.FormatAsCurrency(currentTotal, fiat),
 			})
 		}
-		// Truncate leading zeroes, if there are any keep the first one to start the chart with 0
-		for i, e := range result {
-			if e.Value > 0 {
-				if i == 0 {
-					return result
-				}
-				return result[i-1:]
-			}
-		}
-		// Everything was zeroes.
-		return []ChartEntry{}
+		// Truncate leading zeroes, if there are any keep the first one to start the chart with 0.
+		// Preserve all-zero historical series so accounts with transactions that net back to zero
+		// still render a chart instead of looking empty.
+		return trimLeadingZeroes(result, hadHistoricalPoints)
 	}
 
 	// Even if we are still gathering data (exchange rates, block headers), we know the result

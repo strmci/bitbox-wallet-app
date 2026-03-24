@@ -320,14 +320,21 @@ export const Chart = ({
       setDiffSince('');
       return;
     }
-    // data should always have at least two data points and when the first
-    // value is 0 we take the next value as valueFrom to calculate valueDiff
-    const nextValue = chartData[rangeFrom + 1] as FormattedLineData;
-    const valueFrom = chartData[rangeFrom].value === 0 ? nextValue.value : chartData[rangeFrom].value;
+    // If the first visible point is 0, use the next point for the diff baseline. A fully flat 0
+    // chart has no meaningful percentage change.
+    const diffBaseEntry = chartData[rangeFrom].value === 0
+      ? chartData[rangeFrom + 1] as FormattedLineData | undefined
+      : chartData[rangeFrom] as FormattedLineData;
+    if (!diffBaseEntry || diffBaseEntry.value === 0 || !Number.isFinite(diffBaseEntry.value)) {
+      setDifference(0);
+      setDiffSince('');
+      return;
+    }
+    const valueFrom = diffBaseEntry.value;
     const valueTo = data.chartTotal;
-    const valueDiff = valueTo ? valueTo - valueFrom : 0;
+    const valueDiff = valueTo !== null ? valueTo - valueFrom : 0;
     setDifference(valueDiff / valueFrom);
-    setDiffSince(`${chartData[rangeFrom].formattedValue} (${renderDate(Number(chartData[rangeFrom].time) * 1000, i18n.language, source)})`);
+    setDiffSince(`${diffBaseEntry.formattedValue} (${renderDate(Number(diffBaseEntry.time) * 1000, i18n.language, source)})`);
   }, [data, i18n.language, source]);
 
   const removeChart = useCallback(() => {
