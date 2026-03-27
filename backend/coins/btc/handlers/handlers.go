@@ -273,7 +273,11 @@ func (handlers *Handlers) getUTXOs(*http.Request) (interface{}, error) {
 		return result, errp.New("Interface must be of type btc.Account")
 	}
 
-	spendableOutputs, reusedAddresses, err := t.SpendableOutputsWithReusedAddresses()
+	spendableOutputs, err := t.SpendableOutputs()
+	if err != nil {
+		return nil, err
+	}
+	reusedAddresses, err := t.ReusedAddressesForOutputs(spendableOutputs)
 	if err != nil {
 		return nil, err
 	}
