@@ -14,6 +14,7 @@
 #include <QWebEngineSettings>
 #include <QMimeDatabase>
 #include <QFile>
+#include <QFont>
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QRegularExpression>
@@ -457,6 +458,19 @@ int main(int argc, char *argv[])
     QWebChannel channel;
     channel.registerObject("backend", webClass);
     view->page()->setWebChannel(&channel);
+#if defined(Q_OS_MACOS)
+    // Keep WebEngine's default font size unchanged for the standard 13pt macOS application font,
+    // and scale it proportionally when macOS provides a different application font size. The web
+    // frontend derives its rem sizes from WebEngine's default font size via html { font-size: 62.5% }.
+    constexpr qreal defaultMacOSFontPointSize = 13.0;
+    constexpr int defaultWebFontPixelSize = 16;
+    const qreal macOSFontPointSize = QGuiApplication::font().pointSizeF();
+    if (macOSFontPointSize > 0) {
+        view->settings()->setFontSize(
+            QWebEngineSettings::DefaultFontSize,
+            qRound(defaultWebFontPixelSize * macOSFontPointSize / defaultMacOSFontPointSize));
+    }
+#endif
     view->settings()->setAttribute(QWebEngineSettings::JavascriptCanAccessClipboard, true);
     // Disabled to prevent iframes from reading clipboard. To enable clipboard reading in the top
     // frame, a custom bridge would be necessary.
