@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { TAccount } from '@/api/account';
-import { type TPaymentInput, getParsePaymentInput } from '@/api/lightning';
+import { type TPaymentInput, TPaymentInputType, getParsePaymentInput } from '@/api/lightning';
 import { GuideWrapper, GuidedContent, Header, Main } from '@/components/layout';
 import { UseDisableBackButton } from '@/hooks/backbutton';
 import { ReviewStep } from './components/review-step';
@@ -12,20 +12,24 @@ import { SelectPaymentInputStep } from './components/select-payment-input-step';
 import { SuccessStep } from './components/success-step';
 import { toLightningErrorMessage } from '@/api/lightning-errors';
 import { LightningSendGuide } from '../guide';
+import { ContactForm } from '../contacts/contact-form';
 
-type TSendStep = 'select-payment-input' | 'review' | 'success';
+type TSendStep = 'select-payment-input' | 'review' | 'success' | 'add-contact';
 
 type TProps = {
   activeAccounts: TAccount[];
+  initialRecipientAddress?: string;
 };
 
-export const Send = ({ activeAccounts }: TProps) => {
+export const Send = ({ activeAccounts, initialRecipientAddress = '' }: TProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState<TSendStep>('select-payment-input');
   const [paymentInput, setPaymentInput] = useState<TPaymentInput>();
   const [inputError, setInputError] = useState<string>();
   const [isSending, setIsSending] = useState(false);
+  const recipientAddress = paymentInput?.type === TPaymentInputType.LNURL_PAY ? paymentInput.lnurlPay.address : undefined;
+  const finish = useCallback(() => navigate('/lightning'), [navigate]);
 
   const resetToPaymentInputEntry = useCallback((nextInputError?: string) => {
     setIsSending(false);
@@ -61,15 +65,6 @@ export const Send = ({ activeAccounts }: TProps) => {
     navigate('/lightning');
   };
 
-  useEffect(() => {
-    if (step !== 'success') {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => navigate('/lightning'), 1000);
-    return () => window.clearTimeout(timeout);
-  }, [navigate, step]);
-
   return (
     <GuideWrapper>
       <GuidedContent>
@@ -77,13 +72,14 @@ export const Send = ({ activeAccounts }: TProps) => {
           {isSending && <UseDisableBackButton />}
           <Header
             variant="navigation"
-            mobileBackButton={step !== 'success' && !isSending}
+            mobileBackButton={(step === 'select-payment-input' || step === 'review') && !isSending}
             onBack={handleBack}
-            title={t('lightning.send.title')}
+            title={t(step === 'add-contact' ? 'lightning.contacts.add' : 'lightning.send.title')}
           />
           {step === 'select-payment-input' && (
             <SelectPaymentInputStep
               activeAccounts={activeAccounts}
+              initialRecipientAddress={initialRecipientAddress}
               inputError={inputError}
               onCancel={() => navigate('/lightning')}
               onSubmit={submitPaymentInput}
@@ -98,10 +94,11 @@ export const Send = ({ activeAccounts }: TProps) => {
               onSuccess={showSuccess}
             />
           )}
-          {step === 'success' && <SuccessStep />}
+          {step === 'success' && <SuccessStep address={recipientAddress} onAddContact={() => setStep('add-contact')} onDone={finish} />}
+          {step === 'add-contact' && <ContactForm initialAddress={recipientAddress} onCancel={() => setStep('success')} onDone={finish} />}
         </Main>
       </GuidedContent>
-      {step !== 'success' && <LightningSendGuide />}
+      {(step === 'select-payment-input' || step === 'review') && <LightningSendGuide />}
     </GuideWrapper>
   );
 };

@@ -48,6 +48,7 @@ import { LightningActivate } from './lightning/activate';
 import { LightningDisclaimer } from './lightning/disclaimer';
 import { LightningDeactivate } from './lightning/deactivate';
 import { LightningSetLnurlAddress } from './lightning/set-lnurl-address';
+import { AddContact, ContactDetails, Contacts } from './lightning/contacts/contacts';
 import { Send as LightningSend } from './lightning/send/send';
 import { Receive as LightningReceive } from './lightning/receive/receive';
 import { LightningTopUp } from './lightning/topup/topup';
@@ -83,7 +84,7 @@ export const AppRouter = ({
 }: TAppRouterProps) => {
   const hasAccounts = accounts.length > 0;
   const lightningFeatureAvailable = isLightningFeatureAvailable();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const Homepage = (<DeviceSwitch
     key={devicesKey('device-switch-default')}
     deviceID={null}
@@ -372,7 +373,10 @@ export const AppRouter = ({
                 hasAccounts={hasAccounts}
               />
             )} />
-            <Route path="send" element={<LightningSend activeAccounts={activeAccounts} />} />
+            <Route path="contacts" element={<Contacts />} />
+            <Route path="contacts/add" element={<AddContact />} />
+            <Route path="contacts/:id" element={<InjectParams><ContactDetails /></InjectParams>} />
+            <Route path="send" element={<LightningSend activeAccounts={activeAccounts} initialRecipientAddress={new URLSearchParams(search).get('recipient') ?? ''} />} />
             <Route path="receive" element={<LightningReceive />} />
             <Route path="topup" element={<LightningTopUp activeAccounts={activeAccounts} hasAccounts={hasAccounts} />} />
           </Route>
